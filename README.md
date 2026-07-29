@@ -12,8 +12,10 @@ Frontend SPA для работы с грузовыми аукционами по
 - Feature-Sliced Design
 - Zustand (UI-state: мобильная панель фильтров)
 - Tailwind CSS 4
+- openapi-typescript (типы из `openapi.auctions.v0.json`)
 - ESLint + Prettier
-- a11y: семантическая разметка, ARIA, focus trap, skip link
+- GitHub Actions CI (`lint` / `format` / `test` / `build` + drift-check codegen)
+- a11y: семантическая разметка, ARIA, focus trap, skip link, Error Boundary
 
 ## Быстрый старт
 
@@ -28,29 +30,48 @@ MSW автоматически перехватывает запросы к `/ap
 
 ## Скрипты
 
-| Команда                | Описание                       |
-| ---------------------- | ------------------------------ |
-| `npm run dev`          | Dev-сервер                     |
-| `npm run build`        | Production-сборка              |
-| `npm run preview`      | Превью сборки                  |
-| `npm run test`         | Vitest + RTL                   |
-| `npm run test:watch`   | Тесты в watch-режиме           |
-| `npm run lint`         | ESLint                         |
-| `npm run lint:fix`     | ESLint с автоисправлением      |
-| `npm run format`       | Prettier — форматирование      |
-| `npm run format:check` | Prettier — проверка без записи |
+| Команда                | Описание                             |
+| ---------------------- | ------------------------------------ |
+| `npm run generate:api` | Codegen типов из OpenAPI             |
+| `npm run check:api`    | Проверка drift сгенерированных типов |
+| `npm run dev`          | Dev-сервер                           |
+| `npm run build`        | Production-сборка                    |
+| `npm run preview`      | Превью сборки                        |
+| `npm run test`         | Vitest + RTL + MSW                   |
+| `npm run test:watch`   | Тесты в watch-режиме                 |
+| `npm run lint`         | ESLint                               |
+| `npm run lint:fix`     | ESLint с автоисправлением            |
+| `npm run format`       | Prettier — форматирование            |
+| `npm run format:check` | Prettier — проверка без записи       |
+
+## OpenAPI codegen
+
+Типы API не пишутся руками. Источник правды — `openapi.auctions.v0.json`.
+
+```bash
+npm run generate:api
+```
+
+Пайплайн:
+
+1. `scripts/prepare-openapi.mjs` — для response-схем проставляет `required` по всем properties  
+   (в исходной схеме почти нет `required`, иначе codegen делает всё optional)
+2. `openapi-typescript` → `src/shared/api/schema.generated.ts`
+3. `src/shared/api/types.ts` — тонкий фасад: алиасы схем + runtime `ApiError`
+
+Генерация также запускается автоматически в `predev` / `prebuild` / `pretest`.  
+CI падает, если `schema.generated.ts` не совпадает с перегенерацией.
 
 ## Архитектура (FSD)
 
 ```
 src/
 ├── app/          # providers, layout, styles, entry
-├── pages/        # (routes через TanStack Router file-based)
 ├── widgets/      # auction-list, auction-detail, bets-list
 ├── features/     # auction-filters, set-bet
 ├── entities/     # auction (api, ui, lib)
 ├── shared/       # api, ui-kit, mocks, config, lib
-└── routes/       # TanStack Router pages
+└── routes/       # TanStack Router pages (+ 404 catch-all)
 ```
 
 ## Маршруты
@@ -61,6 +82,7 @@ src/
 | `/auctions/:uuid`      | Детальная карточка аукциона                    |
 | `/auctions/:uuid/bets` | История ставок                                 |
 | `/auctions/:uuid/bet`  | Форма установки ставки (открывается по ссылке) |
+| `/*`                   | 404                                            |
 
 ## Фильтры
 
@@ -68,13 +90,16 @@ src/
 
 Поддерживаемые фильтры: `cargo_num`, `status`, `statuses`, `auc_type`, `load_city`, `unload_city`, `load_date_from/to`, `is_available`, `is_bidder`, `current_price_from/to`.
 
+На mobile drawer остаётся открытым при правках фильтров; закрытие — по «Показать результаты», Escape или backdrop.
+
 ## MSW
 
 In-memory store (`shared/mocks/store.ts`) обновляется при POST `/auctions/:uuid/bets`:
 
 - добавляется новая ставка текущего пользователя
 - пересчитывается текущая цена и торговый статус
-- синхронизируются list/detail DTO
+- места в рейтинге считаются по экономике типа аукциона (Down/FixPrice — ниже лучше)
+- синхронизируются list/detail DTO (`is_available` не затирается)
 
 Seed-данные покрывают edge cases:
 
@@ -95,25 +120,25 @@ Seed-данные покрывают edge cases:
 6. **Скрытая история**: аукцион `00000001062` — сообщение о скрытии
 7. **Ставка**: `/auctions/:uuid/bet` — форма, валидация min/max/step, success toast
 8. **422**: ввести цену ниже min — ошибка валидации от MSW
-9. **Mobile**: фильтры через drawer на ширине < 1024px
+9. **Mobile**: фильтры через drawer на ширине < 1024px, несколько правок без авто-закрытия
+10. **404 / retry**: неизвестный URL → 404; на ошибке запроса — кнопка «Повторить»
 
 ## Тесты
 
-Стек: **Vitest** (Jest-совместимый API) + **React Testing Library** + **@testing-library/user-event**.  
-Vitest выбран вместо чистого Jest, потому что проект на Vite — так проще и быстрее без отдельного babel/jest-рантайма.
+Стек: **Vitest** + **React Testing Library** + **MSW node server**.
 
 ```bash
 npm run test
-npm run test:watch
 ```
 
 Покрыто:
 
-- search params: Zod-парсинг, merge/serialize, request builder
+- search params: Zod-парсинг, merge/serialize, request builder, active filter chips
 - ViewModel-маппер карточки и `resolveAuctionCardAction`
 - validation schema ставки (min/max/step)
-- UI: Button, Input, Alert (a11y-роли, disabled/loading)
+- UI: Button, Input, Alert
 - SetBetForm: unavailable state, submit валидной ставки, клиентская валидация min
+- MSW handlers: фильтры, пагинация, 404/422, mutation ставки, пересчёт place, edge-case флаги
 
 ## Доступность (a11y)
 
@@ -125,15 +150,31 @@ npm run test:watch
 - Списки: `ul`/`ol`/`li`, пагинация — `nav` + `aria-label`
 - Данные: `dl`/`dt`/`dd` для пар ключ-значение
 - Live regions: `aria-live` для счётчика результатов и toast-уведомлений
-- Декоративные иконки: `aria-hidden="true"`
+- Error Boundary на уровне root outlet
 - `prefers-reduced-motion` — отключение анимаций
 - Телефоны — кликабельные `tel:` ссылки
 
+## Соответствие ТЗ
+
+| Требование ТЗ                                                                       | Статус     |
+| ----------------------------------------------------------------------------------- | ---------- |
+| Обязательный стек (React/TS/Vite/Router/Query/RHF+Zod/MSW/FSD/Zustand)              | ✅         |
+| 4 endpoint’а OpenAPI + mutable MSW                                                  | ✅         |
+| Список: Query, пагинация, skeleton/empty/error, prefetch, URL+Zod фильтры, adaptive | ✅         |
+| Минимальный набор фильтров                                                          | ✅         |
+| Карточка: поля + primary action                                                     | ✅         |
+| Деталка + ограничения DTO                                                           | ✅         |
+| Ставки + hide_bets_history                                                          | ✅         |
+| Форма ставки + invalidation + toast + 422                                           | ✅         |
+| `*.component.tsx`                                                                   | ✅         |
+| AI_USAGE.md + README                                                                | ✅         |
+| Минимальные тесты на чистую логику                                                  | ✅ (+ MSW) |
+
 ## Ограничения
 
-- Нет e2e-тестов (Playwright) — есть unit + RTL
+- Нет e2e-тестов (Playwright) — есть unit + RTL + MSW integration
 - UI-kit минимальный, без Radix/Shadcn (на усмотрение кандидата по ТЗ)
-- OpenAPI-типы написаны вручную (openapi-typescript несовместим с текущим TS)
+- В исходном OpenAPI почти нет `required` — перед codegen их проставляет prepare-скрипт для response-схем
 - Нет auth flow (Bearer-токен не требуется для MSW)
 
 ## AI Usage

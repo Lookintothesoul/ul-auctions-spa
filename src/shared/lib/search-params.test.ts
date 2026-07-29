@@ -6,6 +6,8 @@ import {
   mergeSearchParams,
   serializeSearchParams,
   defaultSearchParams,
+  countActiveFilters,
+  getActiveFilterChips,
   type AuctionSearchParams,
 } from '@/features/auction-filters/model/search-params'
 import { mapAuctionListItemToCard } from '@/entities/auction/lib/mappers'
@@ -181,6 +183,21 @@ describe('mapAuctionListItemToCard', () => {
       body_type: 'тентованный',
       truck_count: 1,
       is_cargo: true,
+      is_international: false,
+      containered: false,
+      incoterms: '',
+      conics: 0,
+      belts: 0,
+      adr: 0,
+      coupling: false,
+      air_pass: false,
+      low_loader: false,
+      additional_load: false,
+      temp_from: -18,
+      temp_to: -15,
+      loading_types: { side: true, top: false, rear: true, full: false },
+      docs: { tir: false, cmr: true, t1: false, med: false },
+      car: null,
     },
     trading: {
       status: 'Auction',
@@ -191,14 +208,24 @@ describe('mapAuctionListItemToCard', () => {
       can_set_bet: true,
       allow_counter_bets: true,
       hide_points_address_and_contacts: false,
+      direction: '',
+      comment: '',
       is_bidder: false,
       is_available: true,
       is_accredited: true,
       is_favorite: false,
       price: { start: 35000, current: 30000, current_no_vat: 24590 },
       your: { bet: false, last_bet: null },
+      red_bet_with_vat: false,
+      red_bet_no_vat: false,
+      is_last_bet_with_vat: false,
     },
-    payment: { form: 'Безналичная с НДС', currency_code: '643' },
+    payment: {
+      form: 'Безналичная с НДС',
+      currency_code: '643',
+      consignor: '',
+      consignee: '',
+    },
   }
 
   it('maps list item to card view model', () => {
@@ -242,5 +269,44 @@ describe('createBetFormSchema', () => {
     expect(schema.safeParse({ price: 40000 }).success).toBe(false)
     expect(schema.safeParse({ price: 20250 }).success).toBe(false)
     expect(schema.safeParse({ price: 29500 }).success).toBe(true)
+  })
+})
+
+describe('getActiveFilterChips', () => {
+  it('covers every active filter counted by countActiveFilters', () => {
+    const params: AuctionSearchParams = {
+      ...defaultSearchParams,
+      cargo_num: '00000001059',
+      status: ['Leading'],
+      statuses: [2],
+      auc_type: ['Down'],
+      load_city: 'Пермь',
+      unload_city: 'Москва',
+      load_date_from: '2026-05-26T09:00:00+03:00',
+      load_date_to: '2026-05-28T18:00:00+03:00',
+      is_available: true,
+      is_bidder: true,
+      current_price_from: 10000,
+      current_price_to: 50000,
+    }
+
+    const chips = getActiveFilterChips(params)
+    expect(chips).toHaveLength(countActiveFilters(params))
+    expect(chips.map((c) => c.key)).toEqual(
+      expect.arrayContaining([
+        'cargo_num',
+        'status:Leading',
+        'statuses:2',
+        'auc_type:Down',
+        'load_city',
+        'unload_city',
+        'load_date_from',
+        'load_date_to',
+        'is_available',
+        'is_bidder',
+        'current_price_from',
+        'current_price_to',
+      ]),
+    )
   })
 })

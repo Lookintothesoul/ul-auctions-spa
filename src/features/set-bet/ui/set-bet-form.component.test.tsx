@@ -50,9 +50,28 @@ function createAuction(overrides?: Partial<AuctionShowResponse['trading']>): Auc
       distance: 1500,
       truck_count: 1,
       body_type: 'тентованный',
+      temp_from: null,
+      temp_to: null,
+      conics: null,
+      belts: null,
+      adr: null,
+      coupling: null,
+      air_pass: null,
+      low_loader: null,
+      additional_load: null,
+      containered: false,
+      container_type: null,
+      container_size: null,
       loading_types: { side: true, top: false, rear: true, full: false },
       docs: { tir: false, cmr: false, t1: false, med: false },
-      car: null,
+      car: {
+        type: 'Тягач',
+        weight: 20,
+        volume: 82,
+        width: 2.4,
+        length: 13.6,
+        height: 2.7,
+      },
     },
     trading: {
       status: 'Auction',
@@ -68,6 +87,11 @@ function createAuction(overrides?: Partial<AuctionShowResponse['trading']>): Auc
       hide_points_address_and_contacts: false,
       is_bidder: false,
       is_favorite: false,
+      is_last_bet_with_vat: null,
+      red_bet_with_vat: false,
+      red_bet_no_vat: false,
+      send_deal_before_load: false,
+      chat_id: null,
       price: {
         start: 35000,
         start_no_vat: 28700,
@@ -92,6 +116,7 @@ function createAuction(overrides?: Partial<AuctionShowResponse['trading']>): Auc
       settings: {
         prolong_after_bet: 10,
         winner_confirm: 1,
+        winner_counter_mode: null,
         transmission_time_in: 24,
         coefficient: 10,
       },
@@ -99,6 +124,7 @@ function createAuction(overrides?: Partial<AuctionShowResponse['trading']>): Auc
     },
     payment: {
       condition: null,
+      condition_predefined: null,
       form: 'Безналичная с НДС',
       delay: 30,
       delay_type: 'CalendarDays',
@@ -108,6 +134,7 @@ function createAuction(overrides?: Partial<AuctionShowResponse['trading']>): Auc
     assembly: { num: null, date: null },
     routes: [],
     admitted_organizations: [],
+    hide_bets_history: false,
   }
 }
 

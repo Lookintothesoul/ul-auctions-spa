@@ -244,13 +244,6 @@ export function AuctionFilters({ params, onChange, className }: AuctionFiltersPr
   useEscapeKey(isMobileFiltersOpen, closeMobileFilters)
   useLockBodyScroll(isMobileFiltersOpen)
 
-  const handleChange = (updates: Partial<AuctionSearchParams>) => {
-    onChange(updates)
-    if (isMobileFiltersOpen && window.matchMedia('(max-width: 1023px)').matches) {
-      closeMobileFilters()
-    }
-  }
-
   return (
     <>
       <aside
@@ -267,7 +260,7 @@ export function AuctionFilters({ params, onChange, className }: AuctionFiltersPr
             onSubmit={(e) => e.preventDefault()}
             className="space-y-4"
           >
-            <FiltersFields params={params} onChange={handleChange} />
+            <FiltersFields params={params} onChange={onChange} />
           </form>
         </div>
       </aside>
@@ -304,10 +297,20 @@ export function AuctionFilters({ params, onChange, className }: AuctionFiltersPr
             <form
               role="search"
               aria-label="Поиск аукционов"
-              onSubmit={(e) => e.preventDefault()}
-              className="flex-1 space-y-4 overflow-y-auto p-4 pb-8"
+              onSubmit={(e) => {
+                e.preventDefault()
+                closeMobileFilters()
+              }}
+              className="flex flex-1 flex-col overflow-hidden"
             >
-              <FiltersFields params={params} onChange={handleChange} />
+              <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                <FiltersFields params={params} onChange={onChange} />
+              </div>
+              <div className="border-t bg-white p-4">
+                <Button type="submit" className="w-full">
+                  Показать результаты
+                </Button>
+              </div>
             </form>
           </div>
         </div>

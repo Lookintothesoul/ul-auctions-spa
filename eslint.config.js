@@ -7,7 +7,16 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src/routeTree.gen.ts'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      '.generated',
+      'scripts',
+      'src/routeTree.gen.ts',
+      'src/shared/api/schema.generated.ts',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

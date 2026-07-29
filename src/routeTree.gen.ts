@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuctionsAuctionUuidIndexRouteImport } from './routes/auctions/$auctionUuid/index'
 import { Route as AuctionsAuctionUuidBetsRouteImport } from './routes/auctions/$auctionUuid/bets'
 import { Route as AuctionsAuctionUuidBetRouteImport } from './routes/auctions/$auctionUuid/bet'
 
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -38,12 +44,14 @@ const AuctionsAuctionUuidBetRoute = AuctionsAuctionUuidBetRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/auctions/$auctionUuid/bet': typeof AuctionsAuctionUuidBetRoute
   '/auctions/$auctionUuid/bets': typeof AuctionsAuctionUuidBetsRoute
   '/auctions/$auctionUuid/': typeof AuctionsAuctionUuidIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/auctions/$auctionUuid/bet': typeof AuctionsAuctionUuidBetRoute
   '/auctions/$auctionUuid/bets': typeof AuctionsAuctionUuidBetsRoute
   '/auctions/$auctionUuid': typeof AuctionsAuctionUuidIndexRoute
@@ -51,6 +59,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/auctions/$auctionUuid/bet': typeof AuctionsAuctionUuidBetRoute
   '/auctions/$auctionUuid/bets': typeof AuctionsAuctionUuidBetsRoute
   '/auctions/$auctionUuid/': typeof AuctionsAuctionUuidIndexRoute
@@ -59,18 +68,21 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$'
     | '/auctions/$auctionUuid/bet'
     | '/auctions/$auctionUuid/bets'
     | '/auctions/$auctionUuid/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$'
     | '/auctions/$auctionUuid/bet'
     | '/auctions/$auctionUuid/bets'
     | '/auctions/$auctionUuid'
   id:
     | '__root__'
     | '/'
+    | '/$'
     | '/auctions/$auctionUuid/bet'
     | '/auctions/$auctionUuid/bets'
     | '/auctions/$auctionUuid/'
@@ -78,6 +90,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
   AuctionsAuctionUuidBetRoute: typeof AuctionsAuctionUuidBetRoute
   AuctionsAuctionUuidBetsRoute: typeof AuctionsAuctionUuidBetsRoute
   AuctionsAuctionUuidIndexRoute: typeof AuctionsAuctionUuidIndexRoute
@@ -85,6 +98,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -118,6 +138,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
   AuctionsAuctionUuidBetRoute: AuctionsAuctionUuidBetRoute,
   AuctionsAuctionUuidBetsRoute: AuctionsAuctionUuidBetsRoute,
   AuctionsAuctionUuidIndexRoute: AuctionsAuctionUuidIndexRoute,

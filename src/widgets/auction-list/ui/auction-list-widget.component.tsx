@@ -1,6 +1,5 @@
 import { useId } from 'react'
-import { Link } from '@tanstack/react-router'
-import { AlertCircle, Inbox } from 'lucide-react'
+import { Inbox } from 'lucide-react'
 import { AuctionCard } from '@/entities/auction/ui/auction-card.component'
 import { useAuctionListQuery } from '@/entities/auction/api/queries'
 import {
@@ -12,12 +11,12 @@ import {
   searchParamsToFilters,
   defaultSearchParams,
   countActiveFilters,
+  getActiveFilterChips,
   type AuctionSearchParams,
 } from '@/features/auction-filters/model/search-params'
 import { Alert } from '@/shared/ui/alert.component'
 import { Button } from '@/shared/ui/button.component'
 import { Badge } from '@/shared/ui/badge.component'
-import { linkButtonClassName } from '@/shared/ui/link-button.styles'
 import { AuctionCardSkeleton } from '@/shared/ui/skeleton.component'
 
 interface AuctionListWidgetProps {
@@ -27,9 +26,10 @@ interface AuctionListWidgetProps {
 export function AuctionListWidget({ searchParams }: AuctionListWidgetProps) {
   const headingId = useId()
   const filters = searchParamsToFilters(searchParams)
-  const { data, isLoading, isError, error, isFetching } = useAuctionListQuery(filters)
+  const { data, isLoading, isError, error, isFetching, refetch } = useAuctionListQuery(filters)
   const navigateFilters = useAuctionFiltersNavigate(searchParams)
   const activeFilters = countActiveFilters(searchParams)
+  const activeChips = getActiveFilterChips(searchParams)
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
@@ -51,7 +51,7 @@ export function AuctionListWidget({ searchParams }: AuctionListWidgetProps) {
           <MobileFiltersButton activeCount={activeFilters} />
         </header>
 
-        {activeFilters > 0 && (
+        {activeChips.length > 0 && (
           <div className="mb-4 flex flex-wrap items-center gap-2" role="status">
             <span className="text-xs text-slate-500" id="active-filters-label">
               Активные фильтры:
@@ -60,24 +60,9 @@ export function AuctionListWidget({ searchParams }: AuctionListWidgetProps) {
               className="flex flex-wrap items-center gap-2"
               aria-labelledby="active-filters-label"
             >
-              {searchParams.load_city && (
-                <li>
-                  <Badge variant="info">Погрузка: {searchParams.load_city}</Badge>
-                </li>
-              )}
-              {searchParams.unload_city && (
-                <li>
-                  <Badge variant="info">Выгрузка: {searchParams.unload_city}</Badge>
-                </li>
-              )}
-              {searchParams.cargo_num && (
-                <li>
-                  <Badge variant="muted">№ {searchParams.cargo_num}</Badge>
-                </li>
-              )}
-              {searchParams.auc_type.map((type) => (
-                <li key={type}>
-                  <Badge variant="default">{type}</Badge>
+              {activeChips.map((chip) => (
+                <li key={chip.key}>
+                  <Badge variant="info">{chip.label}</Badge>
                 </li>
               ))}
             </ul>
@@ -105,9 +90,14 @@ export function AuctionListWidget({ searchParams }: AuctionListWidgetProps) {
         )}
 
         {isError && (
-          <Alert variant="error" title="Не удалось загрузить аукционы">
-            {error instanceof Error ? error.message : 'Неизвестная ошибка'}
-          </Alert>
+          <div className="space-y-3">
+            <Alert variant="error" title="Не удалось загрузить аукционы">
+              {error instanceof Error ? error.message : 'Неизвестная ошибка'}
+            </Alert>
+            <Button variant="secondary" onClick={() => void refetch()}>
+              Повторить
+            </Button>
+          </div>
         )}
 
         {!isLoading && !isError && data?.data.length === 0 && (
@@ -171,18 +161,6 @@ export function AuctionListWidget({ searchParams }: AuctionListWidgetProps) {
           </>
         )}
       </section>
-    </div>
-  )
-}
-
-export function AuctionListErrorFallback() {
-  return (
-    <div className="flex flex-col items-center gap-4 py-16 text-center" role="alert">
-      <AlertCircle className="size-12 text-red-400" aria-hidden="true" />
-      <p className="text-lg font-medium">Ошибка загрузки</p>
-      <Link to="/" search={defaultSearchParams} className={linkButtonClassName()}>
-        Вернуться к списку
-      </Link>
     </div>
   )
 }

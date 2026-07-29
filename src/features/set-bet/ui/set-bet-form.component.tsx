@@ -1,4 +1,4 @@
-import { useEffect, useId } from 'react'
+import { useId } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { AuctionShowResponse } from '@/shared/api/types'
@@ -42,19 +42,6 @@ export function SetBetForm({ auction, auctionUuid, onSuccess }: SetBetFormProps)
       price: auction.trading.price.available ?? auction.trading.price.current ?? undefined,
     },
   })
-
-  useEffect(() => {
-    if (mutation.isError) {
-      const validationErrors = getValidationErrors(mutation.error)
-      if (validationErrors) {
-        validationErrors.forEach((err) => {
-          if (err.field === 'price') {
-            setError('price', { message: err.message })
-          }
-        })
-      }
-    }
-  }, [mutation.isError, mutation.error, setError])
 
   const onSubmit = handleSubmit(async (values) => {
     try {

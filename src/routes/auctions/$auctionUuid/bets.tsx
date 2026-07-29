@@ -4,7 +4,7 @@ import {
   countParticipants,
 } from '@/widgets/bets-list/ui/bets-list-widget.component'
 import { useAuctionDetailQuery, useAuctionBetsQuery } from '@/entities/auction/api/queries'
-import { Alert } from '@/shared/ui/alert.component'
+import { QueryError } from '@/shared/ui/query-error.component'
 import { PageSkeleton } from '@/shared/ui/skeleton.component'
 
 export const Route = createFileRoute('/auctions/$auctionUuid/bets')({
@@ -24,9 +24,13 @@ function AuctionBetsPage() {
 
   if (detailQuery.isError || !detailQuery.data) {
     return (
-      <Alert variant="error" title="Ошибка">
-        {detailQuery.error instanceof Error ? detailQuery.error.message : 'Аукцион не найден'}
-      </Alert>
+      <QueryError
+        title="Ошибка"
+        message={
+          detailQuery.error instanceof Error ? detailQuery.error.message : 'Аукцион не найден'
+        }
+        onRetry={() => void detailQuery.refetch()}
+      />
     )
   }
 
@@ -40,9 +44,11 @@ function AuctionBetsPage() {
 
   if (betsQuery.isError) {
     return (
-      <Alert variant="error" title="Не удалось загрузить ставки">
-        {betsQuery.error instanceof Error ? betsQuery.error.message : 'Ошибка загрузки'}
-      </Alert>
+      <QueryError
+        title="Не удалось загрузить ставки"
+        message={betsQuery.error instanceof Error ? betsQuery.error.message : 'Ошибка загрузки'}
+        onRetry={() => void betsQuery.refetch()}
+      />
     )
   }
 

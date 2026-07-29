@@ -4,6 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "generate:api": "node scripts/prepare-openapi.mjs && openapi-typescript .generated/openapi.prepared.json -o src/shared/api/schema.generated.ts",
+    "predev": "npm run generate:api",
+    "prebuild": "npm run generate:api",
+    "pretest": "npm run generate:api",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -12,7 +16,8 @@
     "format:check": "prettier --check .",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
-    "test:watch": "vitest --config vitest.config.ts"
+    "test:watch": "vitest --config vitest.config.ts",
+    "check:api": "npm run generate:api && git diff --exit-code -- src/shared/api/schema.generated.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "5.5.7",
@@ -47,6 +52,7 @@
     "eslint-plugin-react-refresh": "0.5.3",
     "globals": "17.8.0",
     "jsdom": "26.1.0",
+    "openapi-typescript": "^7.13.0",
     "prettier": "3.9.6",
     "tailwindcss": "4.3.3",
     "typescript": "5.8.3",

@@ -11,10 +11,14 @@ import {
   DEFAULT_PER_PAGE,
   CURRENT_USER_SUBSCRIBER_ID,
 } from '@/shared/config/constants'
-import { getCityGcId } from '@/shared/config/cities'
 import { mockStore } from '@/shared/mocks/store'
 
 const API = '/api/v1'
+const isTest = import.meta.env.MODE === 'test'
+
+async function respondDelay(ms: number) {
+  if (!isTest) await delay(ms)
+}
 
 function filterAuctions(body: AuctionListRequest = {}) {
   let items = [...mockStore.auctions]
@@ -190,7 +194,7 @@ function validateBetPrice(price: number, auctionUuid: string): ValidationProblem
 
 export const handlers = [
   http.post(`${API}/auctions/list`, async ({ request }) => {
-    await delay(300)
+    await respondDelay(300)
     const body = (await request.json().catch(() => ({}))) as AuctionListRequest
     const page = body.page ?? DEFAULT_PAGE
     const perPage = body.per_page ?? DEFAULT_PER_PAGE
@@ -220,7 +224,7 @@ export const handlers = [
   }),
 
   http.get(`${API}/auctions/:auctionUuid`, async ({ params }) => {
-    await delay(200)
+    await respondDelay(200)
     const uuid = params.auctionUuid as string
     const record = mockStore.findByUuid(uuid)
 
@@ -240,7 +244,7 @@ export const handlers = [
   }),
 
   http.get(`${API}/auctions/:auctionUuid/bets`, async ({ params, request }) => {
-    await delay(200)
+    await respondDelay(200)
     const uuid = params.auctionUuid as string
     const record = mockStore.findByUuid(uuid)
 
@@ -271,7 +275,7 @@ export const handlers = [
   }),
 
   http.post(`${API}/auctions/:auctionUuid/bets`, async ({ params, request }) => {
-    await delay(400)
+    await respondDelay(400)
     const uuid = params.auctionUuid as string
     const record = mockStore.findByUuid(uuid)
 
@@ -341,10 +345,7 @@ export const handlers = [
 
     record.bets = record.bets.filter((b) => b.subscriber_id !== CURRENT_USER_SUBSCRIBER_ID)
     record.bets.unshift(newBet)
-
-    record.bets.forEach((bet, index) => {
-      bet.place = index + 1
-    })
+    mockStore.recomputeBetPlaces(record)
 
     if (isBetter || aucType === 'Request') {
       record.detail.trading.price.current = body.price
@@ -370,6 +371,3 @@ export const handlers = [
     return new HttpResponse(null, { status: 200 })
   }),
 ]
-
-// Re-export for tests
-export { getCityGcId }

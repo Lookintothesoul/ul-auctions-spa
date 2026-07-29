@@ -1,6 +1,8 @@
 dist
 node_modules
 coverage
+.generated
 src/routeTree.gen.ts
+src/shared/api/schema.generated.ts
 package-lock.json
 public/mockServiceWorker.js

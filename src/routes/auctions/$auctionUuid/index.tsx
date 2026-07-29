@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { AuctionDetailWidget } from '@/widgets/auction-detail/ui/auction-detail-widget.component'
 import { useAuctionDetailQuery } from '@/entities/auction/api/queries'
-import { Alert } from '@/shared/ui/alert.component'
+import { QueryError } from '@/shared/ui/query-error.component'
 import { PageSkeleton } from '@/shared/ui/skeleton.component'
 
 export const Route = createFileRoute('/auctions/$auctionUuid/')({
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/auctions/$auctionUuid/')({
 
 function AuctionDetailPage() {
   const { auctionUuid } = Route.useParams()
-  const { data, isLoading, isError, error } = useAuctionDetailQuery(auctionUuid)
+  const { data, isLoading, isError, error, refetch } = useAuctionDetailQuery(auctionUuid)
 
   if (isLoading) {
     return <PageSkeleton label="Загрузка аукциона" />
@@ -18,9 +18,11 @@ function AuctionDetailPage() {
 
   if (isError || !data) {
     return (
-      <Alert variant="error" title="Не удалось загрузить аукцион">
-        {error instanceof Error ? error.message : 'Аукцион не найден'}
-      </Alert>
+      <QueryError
+        title="Не удалось загрузить аукцион"
+        message={error instanceof Error ? error.message : 'Аукцион не найден'}
+        onRetry={() => void refetch()}
+      />
     )
   }
 

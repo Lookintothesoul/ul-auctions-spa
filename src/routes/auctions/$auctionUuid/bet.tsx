@@ -1,9 +1,8 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
 import { SetBetForm } from '@/features/set-bet/ui/set-bet-form.component'
 import { useAuctionDetailQuery } from '@/entities/auction/api/queries'
-import { Alert } from '@/shared/ui/alert.component'
+import { QueryError } from '@/shared/ui/query-error.component'
 import { PageSkeleton } from '@/shared/ui/skeleton.component'
 
 export const Route = createFileRoute('/auctions/$auctionUuid/bet')({
@@ -13,7 +12,7 @@ export const Route = createFileRoute('/auctions/$auctionUuid/bet')({
 function SetBetPage() {
   const { auctionUuid } = Route.useParams()
   const navigate = useNavigate()
-  const { data, isLoading, isError, error } = useAuctionDetailQuery(auctionUuid)
+  const { data, isLoading, isError, error, refetch } = useAuctionDetailQuery(auctionUuid)
 
   if (isLoading) {
     return <PageSkeleton label="Загрузка формы ставки" />
@@ -21,9 +20,11 @@ function SetBetPage() {
 
   if (isError || !data) {
     return (
-      <Alert variant="error" title="Ошибка">
-        {error instanceof Error ? error.message : 'Аукцион не найден'}
-      </Alert>
+      <QueryError
+        title="Ошибка"
+        message={error instanceof Error ? error.message : 'Аукцион не найден'}
+        onRetry={() => void refetch()}
+      />
     )
   }
 

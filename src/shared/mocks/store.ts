@@ -1,4 +1,5 @@
 import type { AuctionListItem, AuctionShowResponse, BetItem } from '@/shared/api/types'
+import { getCityGcId } from '@/shared/config/cities'
 
 export interface MockAuctionRecord {
   uuid: string
@@ -68,14 +69,14 @@ function createListItem(
         city: overrides.load_city ?? 'Пермь',
         address: overrides.hide_points ? '' : 'Транспортная 9',
         date: overrides.load_date ?? '2026-05-26T09:00:00',
-        city_gc_id: 59,
+        city_gc_id: getCityGcId(overrides.load_city ?? 'Пермь') ?? 59,
         points_count: 1,
       },
       unload: {
         city: overrides.unload_city ?? 'Москва',
         address: overrides.hide_points ? '' : 'ул. Ленина 1',
         date: overrides.unload_date ?? '2026-05-28T18:00:00',
-        city_gc_id: 100,
+        city_gc_id: getCityGcId(overrides.unload_city ?? 'Москва') ?? 100,
         points_count: 1,
       },
     },
@@ -86,6 +87,21 @@ function createListItem(
       body_type: overrides.body_type ?? 'тентованный',
       truck_count: 1,
       is_cargo: true,
+      is_international: false,
+      containered: false,
+      incoterms: '',
+      conics: 0,
+      belts: 0,
+      adr: 0,
+      coupling: false,
+      air_pass: false,
+      low_loader: false,
+      additional_load: false,
+      temp_from: -18,
+      temp_to: -15,
+      loading_types: { side: true, top: false, rear: true, full: false },
+      docs: { tir: false, cmr: true, t1: false, med: false },
+      car: null,
     },
     trading: {
       status: overrides.status ?? 'Auction',
@@ -96,6 +112,8 @@ function createListItem(
       can_set_bet: overrides.can_set_bet ?? true,
       allow_counter_bets: true,
       hide_points_address_and_contacts: overrides.hide_points ?? false,
+      direction: '',
+      comment: '',
       is_bidder: overrides.is_bidder ?? false,
       is_available: overrides.is_available ?? true,
       is_accredited: true,
@@ -109,10 +127,15 @@ function createListItem(
         bet: overrides.has_bet ?? false,
         last_bet: overrides.last_bet ?? null,
       },
+      red_bet_with_vat: false,
+      red_bet_no_vat: false,
+      is_last_bet_with_vat: false,
     },
     payment: {
       form: 'Безналичная с НДС',
       currency_code: '643',
+      consignor: '',
+      consignee: '',
     },
   }
 }
@@ -173,6 +196,16 @@ function createDetailFromList(
       body_type: listItem.cargo.body_type,
       temp_from: -18,
       temp_to: -15,
+      conics: null,
+      belts: null,
+      adr: null,
+      coupling: null,
+      air_pass: null,
+      low_loader: null,
+      additional_load: null,
+      containered: false,
+      container_type: null,
+      container_size: null,
       loading_types: { side: true, top: false, rear: true, full: false },
       docs: { tir: false, cmr: true, t1: false, med: false },
       car: {
@@ -199,6 +232,11 @@ function createDetailFromList(
         options.hide_points ?? listItem.trading.hide_points_address_and_contacts,
       is_bidder: listItem.trading.is_bidder,
       is_favorite: listItem.trading.is_favorite,
+      is_last_bet_with_vat: null,
+      red_bet_with_vat: false,
+      red_bet_no_vat: false,
+      send_deal_before_load: false,
+      chat_id: null,
       price: {
         start: listItem.trading.price?.start ?? 35000,
         start_no_vat: 28700,
@@ -223,6 +261,7 @@ function createDetailFromList(
       settings: {
         prolong_after_bet: 10,
         winner_confirm: 1,
+        winner_counter_mode: null,
         transmission_time_in: 24,
         coefficient: 10,
       },
@@ -259,6 +298,11 @@ function createDetailFromList(
           package_name: 'паллеты',
           weight: listItem.cargo.weight.toFixed(3),
           volume: listItem.cargo.volume.toFixed(3),
+          length: '0',
+          width: '0',
+          height: '0',
+          oversized: false,
+          package_amount: null,
         },
         contact: options.hide_points
           ? { name: '', phone: '' }
@@ -285,6 +329,11 @@ function createDetailFromList(
           package_name: '',
           weight: listItem.cargo.weight.toFixed(3),
           volume: listItem.cargo.volume.toFixed(3),
+          length: '0',
+          width: '0',
+          height: '0',
+          oversized: false,
+          package_amount: null,
         },
         contact: { name: '', phone: '' },
       },
@@ -293,10 +342,18 @@ function createDetailFromList(
       {
         id: 14,
         inn: '9616244307',
+        is_main: true,
         name: 'ООО Перевозчик',
         full_name: 'Общество с ограниченной ответственностью Перевозчик',
+        site: null,
         subscriber_id: 13,
+        subscriber_code: '54321',
+        subscriber_role: null,
+        infobase_code: 'RU_Cargo_01',
+        infobase_address: null,
+        nalog_key: null,
         hide_me: false,
+        current_vat_rate: '22',
       },
     ],
     hide_bets_history: options.hide_bets_history ?? false,
@@ -543,9 +600,21 @@ function buildSeedData(): MockAuctionRecord[] {
   return items
 }
 
+function createStoreState() {
+  return {
+    auctions: buildSeedData(),
+    nextBetId: 100000,
+  }
+}
+
 export const mockStore = {
-  auctions: buildSeedData(),
-  nextBetId: 100000,
+  ...createStoreState(),
+
+  reset() {
+    const next = createStoreState()
+    this.auctions = next.auctions
+    this.nextBetId = next.nextBetId
+  },
 
   findByUuid(uuid: string) {
     return this.auctions.find((a) => a.uuid === uuid)
@@ -555,13 +624,51 @@ export const mockStore = {
     return this.auctions.find((a) => a.listItem.main.id === id)
   },
 
+  /**
+   * Recompute places for active bets by auction economics:
+   * Down/FixPrice — lower price is better; Up/Request — higher price is better.
+   */
+  recomputeBetPlaces(record: MockAuctionRecord) {
+    const aucType = record.detail.main.auc_type
+    const ascending = aucType === 'Down' || aucType === 'FixPrice'
+    const active = record.bets.filter((b) => !b.is_rejected)
+    const rejected = record.bets.filter((b) => b.is_rejected)
+
+    active.sort((a, b) => {
+      const diff = a.price_with_vat - b.price_with_vat
+      return ascending ? diff : -diff
+    })
+
+    active.forEach((bet, index) => {
+      bet.place = index + 1
+    })
+    rejected.forEach((bet) => {
+      bet.place = null
+    })
+
+    record.bets = [...active, ...rejected]
+  },
+
   syncListFromDetail(record: MockAuctionRecord) {
     const d = record.detail
     record.listItem.trading.status = d.trading.status
-    record.listItem.trading.status_mobile = d.trading.status_mobile
+    // List DTO uses a narrower inline enum than TradingStatus — map unknown values.
+    const listStatuses = [
+      'NotParticipating',
+      'Leading',
+      'Losing',
+      'Winner',
+      'Confirmed',
+      'Unknown',
+    ] as const
+    record.listItem.trading.status_mobile = listStatuses.includes(
+      d.trading.status_mobile as (typeof listStatuses)[number],
+    )
+      ? (d.trading.status_mobile as (typeof listStatuses)[number])
+      : 'Unknown'
     record.listItem.trading.can_set_bet = d.trading.can_set_bet
     record.listItem.trading.is_bidder = d.trading.is_bidder
-    record.listItem.trading.is_available = d.trading.can_set_bet
+    // is_available is an independent list flag — keep existing seed/list value
     record.listItem.trading.price = {
       start: d.trading.price.start ?? 0,
       current: d.trading.price.current ?? 0,

@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '@/shared/config/constants'
+import { DEFAULT_PAGE, DEFAULT_PER_PAGE, AUCTION_STATUS_MAP } from '@/shared/config/constants'
+import {
+  TRADING_STATUS_LABELS,
+  AUCTION_TYPE_LABELS,
+  AUCTION_STATUS_LABELS,
+} from '@/entities/auction/lib/labels'
+import type { AuctionStatus, AuctionType, TradingStatus } from '@/shared/api/types'
 
 const tradingStatusEnum = z.enum([
   'NotParticipating',
@@ -190,18 +196,82 @@ export function filtersToSearchParams(params: AuctionSearchParams): Record<strin
 }
 
 export function countActiveFilters(params: AuctionSearchParams): number {
-  let count = 0
-  if (params.cargo_num) count++
-  if (params.status.length) count++
-  if (params.statuses.length) count++
-  if (params.auc_type.length) count++
-  if (params.load_city) count++
-  if (params.unload_city) count++
-  if (params.load_date_from) count++
-  if (params.load_date_to) count++
-  if (params.is_available !== undefined) count++
-  if (params.is_bidder !== undefined) count++
-  if (params.current_price_from !== undefined) count++
-  if (params.current_price_to !== undefined) count++
-  return count
+  return getActiveFilterChips(params).length
+}
+
+export interface ActiveFilterChip {
+  key: string
+  label: string
+}
+
+/** Human-readable chips for every active filter (keeps counter and UI in sync). */
+export function getActiveFilterChips(params: AuctionSearchParams): ActiveFilterChip[] {
+  const chips: ActiveFilterChip[] = []
+
+  if (params.cargo_num) {
+    chips.push({ key: 'cargo_num', label: `№ ${params.cargo_num}` })
+  }
+  for (const status of params.status) {
+    chips.push({
+      key: `status:${status}`,
+      label: `Мой статус: ${TRADING_STATUS_LABELS[status as TradingStatus] ?? status}`,
+    })
+  }
+  for (const statusCode of params.statuses) {
+    const name = AUCTION_STATUS_MAP[statusCode] as AuctionStatus | undefined
+    chips.push({
+      key: `statuses:${statusCode}`,
+      label: `Аукцион: ${name ? (AUCTION_STATUS_LABELS[name] ?? name) : statusCode}`,
+    })
+  }
+  for (const type of params.auc_type) {
+    chips.push({
+      key: `auc_type:${type}`,
+      label: AUCTION_TYPE_LABELS[type as AuctionType] ?? type,
+    })
+  }
+  if (params.load_city) {
+    chips.push({ key: 'load_city', label: `Погрузка: ${params.load_city}` })
+  }
+  if (params.unload_city) {
+    chips.push({ key: 'unload_city', label: `Выгрузка: ${params.unload_city}` })
+  }
+  if (params.load_date_from) {
+    chips.push({
+      key: 'load_date_from',
+      label: `Погрузка от: ${params.load_date_from.slice(0, 16).replace('T', ' ')}`,
+    })
+  }
+  if (params.load_date_to) {
+    chips.push({
+      key: 'load_date_to',
+      label: `Погрузка до: ${params.load_date_to.slice(0, 16).replace('T', ' ')}`,
+    })
+  }
+  if (params.current_price_from !== undefined) {
+    chips.push({
+      key: 'current_price_from',
+      label: `Цена от: ${params.current_price_from.toLocaleString('ru-RU')} ₽`,
+    })
+  }
+  if (params.current_price_to !== undefined) {
+    chips.push({
+      key: 'current_price_to',
+      label: `Цена до: ${params.current_price_to.toLocaleString('ru-RU')} ₽`,
+    })
+  }
+  if (params.is_available !== undefined) {
+    chips.push({
+      key: 'is_available',
+      label: params.is_available ? 'Доступные для ставки' : 'Недоступные для ставки',
+    })
+  }
+  if (params.is_bidder !== undefined) {
+    chips.push({
+      key: 'is_bidder',
+      label: params.is_bidder ? 'Я участвую' : 'Я не участвую',
+    })
+  }
+
+  return chips
 }
